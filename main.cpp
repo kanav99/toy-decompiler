@@ -3,18 +3,27 @@
 #include <map>
 #include <boost/algorithm/string.hpp>
 #include <iostream>
+#include <fstream>
+#include <streambuf>
 
 /// Different Splits
 /// Language - C, C++, Rust, Swift
 /// Architecture - x86, Arm, RISC
 /// Input type - assembly code (at&t or intel), byte code
 
+/// Currently - assembly code in at&t, x86, C (aiming for Swift)
+
 /// Desired interface -
 /// auto decompiler = Decompiler(L_SWIFT, M_X86);
 
-// For starters, no enums, only strings
+/// For starters, no enums, only strings
 
-// Starting to right, I feel rust would have been better because of powerful enums
+/// Starting to write, I feel rust would have been better because of powerful enums
+
+/// Features -
+/// Single function
+/// Local and global variables, including consts
+/// basic arithmetic operations
 
 #define RESET   "\033[0m"
 #define RED     "\033[31m"      /* Red */
@@ -39,23 +48,79 @@ long stolhex(std::string s, size_t *pos)
     return val;
 }
 
+void print_vec(std::vector<uint8_t> v)
+{
+    for(auto i: v)
+    {
+        std::cout << std::hex << (int)i;
+        std::cout << " ";
+    }
+    std::cout << std::endl;
+}
+
 class x86Instruction {
 public:
     
     std::string mnemonic;
     std::vector<std::string> operands;
+    std::vector<uint8_t> bytes;
+    uint64_t instr_address;
+    size_t size;
 
     x86Instruction(std::string s) {
+        // remove comment
+        std::cout << s << std::endl;
+        size_t com = s.find('#');
+        if (com != std::string::npos)
+        {
+            s = s.substr(0, com);
+        }
+
         boost::trim(s);
+        
         if (s == "") {
             return;
         }
-        size_t pos = s.find(" ");
+        size_t pos;
+
+        pos = s.find(":");
+        instr_address = std::stol(s.substr(0, pos), nullptr, 16);
+
+        pos += 1;
+        while(true)
+        {
+            while(s[pos] == ' ' || s[pos] == '\t')
+            {
+                pos += 1;
+            }
+            if (s[pos + 2] == ' ' || s[pos + 2] == '\t')
+            {
+                // std::cout << s.substr(pos, 2) << " ";
+                try {
+                    uint8_t val = std::stol(s.substr(pos, 2), nullptr, 16);
+                    bytes.push_back(val);
+                    pos += 3;
+                }
+                catch(...) {
+                    break;
+                }
+            }
+            else {
+                break;
+            }
+        }
+
+        s = s.substr(pos);
+        pos = s.find(" ");
         mnemonic = s.substr(0, pos);
 
         std::string operands_string = boost::trim_copy(s.substr(pos));
         boost::split(operands, operands_string, [](char c){ return c == ',';});
-        
+    }
+
+    uint64_t get_rip()
+    {
+        return instr_address + bytes.size();
     }
 };
 
@@ -65,11 +130,14 @@ public:
     std::map<std::string, std::string> registers;
 
     std::map<int, std::string> local_variables;
+    std::map<int, std::string> global_variables;
+    std::map<int, std::string> heap_variables;
 
     std::vector<std::string> code;
 
-    std::string parse_source(std::string operand)
+    std::string parse_source(x86Instruction instr, size_t operand_index)
     {
+        std::string operand = instr.operands[operand_index];
         std::string source;
         if (operand[0] == '$') 
         {
@@ -105,12 +173,25 @@ public:
                     // argument
                 }
             }
+            else if (operand.substr(pos) == "(%rip)")
+            {
+                uint64_t addr = instr.get_rip() + offset;
+                if (global_variables.find(addr) == global_variables.end()) {
+                    // new global var
+                    source = "global_" + std::to_string(global_variables.size());
+                    global_variables[addr] = source;
+                }
+                else {
+                    source = global_variables[addr];
+                }
+            }
         }
         return source;
     }
 
-    std::string parse_dest(std::string operand)
+    std::string parse_dest(x86Instruction instr, size_t operand_index)
     {
+        std::string operand = instr.operands[operand_index];
         std::string dest;
         if (operand[0] == '%') 
         {
@@ -139,6 +220,18 @@ public:
                     // argument
                 }
             }
+            else if (operand.substr(pos) == "(%rip)")
+            {
+                uint64_t addr = instr.get_rip() + offset;
+                if (global_variables.find(addr) == global_variables.end()) {
+                    // new global var
+                    dest = "global_" + std::to_string(global_variables.size());
+                    global_variables[addr] = dest;
+                }
+                else {
+                    dest = global_variables[addr];
+                }
+            }
         }
         return dest;
     }
@@ -165,10 +258,10 @@ public:
         if (instr.mnemonic == "movl" || instr.mnemonic == "mov") {
             // movl source, dest
             // step 1: destination
-            std::string dest = parse_dest(instr.operands[1]);
+            std::string dest = parse_dest(instr, 1);
 
             // step 2: source
-            std::string source = parse_source(instr.operands[0]);
+            std::string source = parse_source(instr, 0);
 
             if (dest[0] == 'r' && dest[1] == '_' )
             {
@@ -186,19 +279,19 @@ public:
             // step 1: dest
             size_t dest_operand_idx = instr.operands.size() - 1;
 
-            std::string source2 = parse_source(instr.operands[dest_operand_idx - 1]);
+            std::string source2 = parse_source(instr, dest_operand_idx - 1);
             // step 2: source 1
             std::string source1;
             if (num_operands == 2)
             {
-                source1 = parse_source(instr.operands[dest_operand_idx]);
+                source1 = parse_source(instr, dest_operand_idx);
             }
             else
             {
-                source1 = parse_source(instr.operands[dest_operand_idx - 2]);
+                source1 = parse_source(instr, dest_operand_idx - 2);
             }
 
-            std::string dest = parse_dest(instr.operands[dest_operand_idx]);
+            std::string dest = parse_dest(instr, dest_operand_idx);
             
             std::string bin_op = parse_op(instr.mnemonic);
 
@@ -218,19 +311,13 @@ public:
 
 int main()
 {
-    std::string assembly = "\
-        movl   $0x0,-0x4(%rbp)\n\
-        movl   $0x5,-0x8(%rbp)\n\
-        imul   $0x7,-0x8(%rbp),%ecx\n\
-        add    $0x20,-0xc(%rbp)\n\
-        add    $0x20,%ecx\n\
-        mov    %ecx,-0xc(%rbp)\n\
-        mov    -0xc(%rbp),%ecx\n\
-        shl    $0x3,%ecx\n\
-        add    $0x2,%ecx\n\
-        mov    %ecx,-0x10(%rbp)\n";
-    
-    std::cout << assembly;
+    std::ifstream f("assembly.s");
+    std::string assembly;
+    f.seekg(0, std::ios::end); 
+    assembly.reserve(f.tellg());
+    f.seekg(0, std::ios::beg);
+    assembly.assign((std::istreambuf_iterator<char>(f)),
+            std::istreambuf_iterator<char>());
 
     std::vector<std::string> lines;
     boost::split(lines, assembly, [](char c){ return c == '\n';});
