@@ -80,7 +80,7 @@ public:
         else if (operand[0] == '%')
         {
             // register source
-            source = "r_" + operand.substr(1);
+            source = "(" + registers[operand.substr(1)] + ")";
         }
         else
         {
@@ -95,6 +95,7 @@ public:
                         source = "local_" + std::to_string(local_variables.size());
                         local_variables[offset] = source;
                         source = RED + source + RESET;
+                        code.push_back("int " + source + ";"); 
                     }
                     else {
                         source = local_variables[offset];
@@ -169,7 +170,14 @@ public:
             // step 2: source
             std::string source = parse_source(instr.operands[0]);
 
-            code.push_back(dest + " = " + source + ";");
+            if (dest[0] == 'r' && dest[1] == '_' )
+            {
+                registers[dest.substr(2)] = source;
+            }
+            else
+            {
+                code.push_back(dest + " = " + source + ";");
+            }
         }
         else if (instr.mnemonic == "imul" || instr.mnemonic == "add" || instr.mnemonic == "shl")
         {
@@ -177,22 +185,31 @@ public:
 
             // step 1: dest
             size_t dest_operand_idx = instr.operands.size() - 1;
-            std::string dest = parse_dest(instr.operands[dest_operand_idx]);
 
             std::string source2 = parse_source(instr.operands[dest_operand_idx - 1]);
             // step 2: source 1
             std::string source1;
             if (num_operands == 2)
             {
-                source1 = dest;
+                source1 = parse_source(instr.operands[dest_operand_idx]);
             }
             else
             {
                 source1 = parse_source(instr.operands[dest_operand_idx - 2]);
             }
+
+            std::string dest = parse_dest(instr.operands[dest_operand_idx]);
             
             std::string bin_op = parse_op(instr.mnemonic);
-            code.push_back(dest + " = " + source1 + " " + bin_op + " " + source2);
+
+            if (dest[0] == 'r' && dest[1] == '_' )
+            {
+                registers[dest.substr(2)] = source1 + " " + bin_op + " " + source2;
+            }
+            else
+            {
+                code.push_back(dest + " = " + source1 + " " + bin_op + " " + source2 + ";");
+            }
         }
         return;
     }
@@ -205,6 +222,7 @@ int main()
         movl   $0x0,-0x4(%rbp)\n\
         movl   $0x5,-0x8(%rbp)\n\
         imul   $0x7,-0x8(%rbp),%ecx\n\
+        add    $0x20,-0xc(%rbp)\n\
         add    $0x20,%ecx\n\
         mov    %ecx,-0xc(%rbp)\n\
         mov    -0xc(%rbp),%ecx\n\
