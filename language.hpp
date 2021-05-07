@@ -3,19 +3,26 @@
 
 #include <string>
 
+enum CodeLineType {
+  Code_Assignment,
+  Code_Expression,
+  Code_Declaration,
+};
+
 class CodeLine {
   /// whether the line is an assignment or just an expression
-  bool assignment;
-  /// LHS of a line, empty for `assigment == false`
+  CodeLineType type;
+  /// LHS of a line, empty for `Code_Expression`, variable type for
+  /// `Code_Declaration`
   std::string lhs;
-  /// RHS of a line
+  /// RHS of a line, variable name for `Code_Declaration`
   std::string rhs;
   /// Additional Comment
   std::string comment;
 
 public:
   std::string repr();
-  CodeLine(bool assignment, std::string lhs, std::string rhs,
+  CodeLine(CodeLineType type, std::string lhs, std::string rhs,
            std::string comment);
 };
 

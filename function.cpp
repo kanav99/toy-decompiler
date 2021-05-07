@@ -53,7 +53,7 @@ std::string Function::parse_source(Instruction instr, size_t operand_index) {
           source = "arg_" + std::to_string(arguments.size() + 6);
           arguments[offset] = source;
         } else {
-          source = local_variables[offset];
+          source = arguments[offset];
         }
       }
     } else if (operand.substr(pos) == "(%rip)") {
@@ -146,8 +146,7 @@ void Function::eat(Instruction instr) {
     if (dest[0] == 'r' && dest[1] == '_') {
       registers[dest.substr(2)] = source;
     } else {
-      // code.push_back(dest + " = " + source + ";");
-      code.push_back(CodeLine(true, dest, source, ""));
+      code.push_back(CodeLine(Code_Assignment, dest, source, instr.repr));
     }
   } else if (instr.mnemonic == "imul" || instr.mnemonic == "add" ||
              instr.mnemonic == "shl") {
@@ -172,10 +171,9 @@ void Function::eat(Instruction instr) {
     if (dest[0] == 'r' && dest[1] == '_') {
       registers[dest.substr(2)] = source1 + " " + bin_op + " " + source2;
     } else {
-      // code.push_back(dest + " = " + source1 + " " + bin_op + " " + source2 +
-      // ";");
-      code.push_back(
-          CodeLine(true, dest, source1 + " " + bin_op + " " + source2, ""));
+      code.push_back(CodeLine(Code_Assignment, dest,
+                              source1 + " " + bin_op + " " + source2,
+                              instr.repr));
     }
   }
   return;
@@ -188,8 +186,9 @@ void Function::print_code() {
             << std::endl; // TODO: Language specific, move to language.cpp
 
   for (auto &key : local_variables) {
-    std::cout << '\t' << "int " << key.second << ";"
-              << std::endl; // TODO: Language specific, move to language.cpp
+    CodeLine line = CodeLine(Code_Declaration, "int", key.second,
+                             "rbp" + std::to_string(key.first));
+    std::cout << '\t' << line.repr() << std::endl;
   }
 
   for (auto &line : code) {
@@ -200,10 +199,33 @@ void Function::print_code() {
 }
 
 Function::Function() {
+  registers["rdi"] = "arg_0";
   registers["edi"] = "arg_0";
+  registers["di"] = "arg_0";
+  registers["dil"] = "arg_0";
+
+  registers["rsi"] = "arg_1";
   registers["esi"] = "arg_1";
+  registers["si"] = "arg_1";
+  registers["sil"] = "arg_1";
+
+  registers["rdx"] = "arg_2";
   registers["edx"] = "arg_2";
+  registers["dx"] = "arg_2";
+  registers["dl"] = "arg_2";
+
+  registers["rcx"] = "arg_3";
   registers["ecx"] = "arg_3";
+  registers["cx"] = "arg_3";
+  registers["cl"] = "arg_3";
+
+  registers["r8"] = "arg_4";
   registers["r8d"] = "arg_4";
+  registers["r8w"] = "arg_4";
+  registers["r8b"] = "arg_4";
+
+  registers["r9"] = "arg_5";
   registers["r9d"] = "arg_5";
+  registers["r9w"] = "arg_5";
+  registers["r9b"] = "arg_5";
 }

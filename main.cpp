@@ -9,8 +9,8 @@
 #include "function.hpp"
 #include "instruction.hpp"
 
-int main() {
-  std::ifstream f("assembly.s");
+int main(int argc, char *argv[]) {
+  std::ifstream f(argv[1]);
   std::string assembly;
   f.seekg(0, std::ios::end);
   assembly.reserve(f.tellg());
