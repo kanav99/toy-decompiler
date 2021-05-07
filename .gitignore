@@ -1,2 +1,4 @@
 a.out
-sample
+test/sample
+*.o
+decompile
