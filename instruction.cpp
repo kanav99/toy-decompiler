@@ -1,4 +1,5 @@
 #include "instruction.hpp"
+#include <iostream>
 
 Instruction::Instruction(std::string s) {
     // remove comment
@@ -16,7 +17,15 @@ Instruction::Instruction(std::string s) {
     size_t pos;
 
     pos = s.find(":");
-    instr_address = std::stol(s.substr(0, pos), nullptr, 16);
+    std::string instr_address_string = s.substr(0, pos);
+    try {
+        instr_address = std::stol(instr_address_string, nullptr, 16);
+    }
+    catch(...) {
+        std::cerr << "stol: while extracting instr_address from instruction `" << s << "`" << std::endl;
+        std::cerr << "stol: couldn't convert `" << instr_address_string << "` to integer" << std::endl;
+        exit(1);
+    }
 
     pos += 1;
     while(true)
@@ -46,6 +55,11 @@ Instruction::Instruction(std::string s) {
     pos = s.find(" ");
     mnemonic = s.substr(0, pos);
 
-    std::string operands_string = boost::trim_copy(s.substr(pos));
-    boost::split(operands, operands_string, [](char c){ return c == ',';});
+    if (pos != std::string::npos) // No operands
+    {
+        std::string operands_string = boost::trim_copy(s.substr(pos));
+        boost::split(operands, operands_string, [](char c){ return c == ',';});
+    }
+
+    // repr = mnemonic + " " + boost::join(operands, ',');
 }

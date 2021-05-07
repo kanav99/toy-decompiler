@@ -1,7 +1,7 @@
 CXX = g++
 CXXFLAGS = --std=c++17 -g
 
-OBJECTS = function.o instruction.o utils.o main.o
+OBJECTS = function.o instruction.o utils.o main.o architecture.o language.o
 
 %.o: %.cpp
 	$(CXX) -c $(CXXFLAGS) $< -o $@

@@ -2,3 +2,5 @@ a.out
 test/sample
 *.o
 decompile
+.vscode/
+

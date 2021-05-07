@@ -1,4 +1,5 @@
 #include "function.hpp"
+#include "architecture.hpp"
 
 std::string Function::parse_source(Instruction instr, size_t operand_index)
 {
@@ -7,7 +8,14 @@ std::string Function::parse_source(Instruction instr, size_t operand_index)
     if (operand[0] == '$') 
     {
         // Immediate value
-        int val = stolhex(operand.substr(1), nullptr);
+        int val;
+        try {
+            val = stolhex(operand.substr(1), nullptr);
+        }
+        catch(...) {
+            std::cerr << "stolhex: failed while parsing immediate value for instruction at " << std::hex << instr.instr_address << std::endl;
+            exit(1);
+        }
         source = std::to_string(val);
     }
     else if (operand[0] == '%')
@@ -18,7 +26,22 @@ std::string Function::parse_source(Instruction instr, size_t operand_index)
     else
     {
         size_t pos;
-        int offset = stolhex(operand, &pos);
+        int offset;
+        if (operand[0] == '(')
+        {
+            pos = 0;
+            offset = 0;
+        }
+        else
+        {
+            try {
+                offset = stolhex(operand, &pos);
+            }
+            catch(...) {
+                std::cerr << "stolhex: failed while parsing memory offset of source for instruction at " << std::hex << instr.instr_address << std::endl;
+                exit(1);
+            }
+        }
         if (operand.substr(pos) == "(%rbp)")
         {
             if (offset < 0) {
@@ -27,8 +50,7 @@ std::string Function::parse_source(Instruction instr, size_t operand_index)
                     // new local var
                     source = "local_" + std::to_string(local_variables.size());
                     local_variables[offset] = source;
-                    source = RED + source + RESET;
-                    code.push_back("int " + source + ";"); 
+                    // source = RED + source + RESET;
                 }
                 else {
                     source = local_variables[offset];
@@ -74,7 +96,22 @@ std::string Function::parse_dest(Instruction instr, size_t operand_index)
     else 
     {
         size_t pos;
-        int offset = stolhex(operand, &pos);
+        int offset;
+        if (operand[0] == '(')
+        {
+            pos = 0;
+            offset = 0;
+        }
+        else
+        {
+            try {
+                offset = stolhex(operand, &pos);
+            }
+            catch(...) {
+                std::cerr << "stolhex: failed while parsing memory offset of destination for instruction at " << std::hex << instr.instr_address << std::endl;
+                exit(1);
+            }
+        }
         if (operand.substr(pos) == "(%rbp)")
         {
             if (offset < 0) {
@@ -83,7 +120,6 @@ std::string Function::parse_dest(Instruction instr, size_t operand_index)
                     // new local var
                     dest = "local_" + std::to_string(local_variables.size());
                     local_variables[offset] = dest;
-                    dest = "int " + dest;
                 }
                 else {
                     dest = local_variables[offset];
@@ -117,25 +153,16 @@ std::string Function::parse_dest(Instruction instr, size_t operand_index)
     return dest;
 }
 
-std::string Function::parse_op(std::string mnemonic)
-{
-    std::string op;
-    if (mnemonic == "imul")
-    {
-        op = "*";
-    }
-    else if (mnemonic == "add")
-    {
-        op = "+";
-    }
-    else if (mnemonic == "shl")
-    {
-        op = "<<";
-    }
-    return op;
-}
-
 void Function::eat(Instruction instr) {
+    
+    if (instructions.empty())
+    {
+        address = instr.instr_address;
+        name = std::string("function_") + std::to_string(address);
+    }
+
+    instructions.push_back(instr);
+    
     if (instr.mnemonic == "movl" || instr.mnemonic == "mov") {
         // movl source, dest
         // step 1: destination
@@ -150,7 +177,8 @@ void Function::eat(Instruction instr) {
         }
         else
         {
-            code.push_back(dest + " = " + source + ";");
+            // code.push_back(dest + " = " + source + ";");
+            code.push_back(CodeLine(true, dest, source, ""));
         }
     }
     else if (instr.mnemonic == "imul" || instr.mnemonic == "add" || instr.mnemonic == "shl")
@@ -182,10 +210,29 @@ void Function::eat(Instruction instr) {
         }
         else
         {
-            code.push_back(dest + " = " + source1 + " " + bin_op + " " + source2 + ";");
+            // code.push_back(dest + " = " + source1 + " " + bin_op + " " + source2 + ";");
+            code.push_back(CodeLine(true, dest, source1 + " " + bin_op + " " + source2, ""));
         }
     }
     return;
+}
+
+void Function::print_code()
+{
+    std::cout << "int " << name << "()" << std::endl; // TODO: Language specific, move to language.cpp
+    std::cout << "{" << std::endl; // TODO: Language specific, move to language.cpp
+
+    for(auto &key: local_variables)
+    {
+        std::cout << '\t' << "int " << key.second << ";" << std::endl; // TODO: Language specific, move to language.cpp
+    }
+
+    for (auto &line: code)
+    {
+        std::cout << '\t' << line.repr() << std::endl;
+    }
+
+    std::cout << "}" << std::endl;
 }
 
 Function::Function()

@@ -1,19 +1,25 @@
-   100003f2a:	48 89 7d f8          	mov    %rdi,-0x8(%rbp)
-   100003f2e:	89 75 f4             	mov    %esi,-0xc(%rbp)
-   100003f31:	89 55 f0             	mov    %edx,-0x10(%rbp)
-   100003f34:	89 4d ec             	mov    %ecx,-0x14(%rbp)
-   100003f37:	44 89 45 e8          	mov    %r8d,-0x18(%rbp)
-   100003f3b:	44 89 4d e4          	mov    %r9d,-0x1c(%rbp)
-   100003f3f:	48 8b 7d f8          	mov    -0x8(%rbp),%rdi
-   100003f43:	89 7d e0             	mov    %edi,-0x20(%rbp)
-   100003f46:	8b 4d 10             	mov    0x10(%rbp),%ecx
-   100003f49:	89 4d dc             	mov    %ecx,-0x24(%rbp)
-   100003f4c:	6b 4d e0 07          	imul   $0x7,-0x20(%rbp),%ecx
-   100003f50:	83 c1 20             	add    $0x20,%ecx
-   100003f53:	89 4d dc             	mov    %ecx,-0x24(%rbp)
-   100003f56:	8b 4d dc             	mov    -0x24(%rbp),%ecx
-   100003f59:	c1 e1 03             	shl    $0x3,%ecx
-   100003f5c:	83 c1 02             	add    $0x2,%ecx
-   100003f5f:	89 4d d8             	mov    %ecx,-0x28(%rbp)
-   100003f62:	89 45 d4             	mov    %eax,-0x2c(%rbp)
-   100003f65:	44 89 d0             	mov    %r10d,%eax
+   100003f20:	55                   	push   %rbp
+   100003f21:	48 89 e5             	mov    %rsp,%rbp
+   100003f24:	8b 45 10             	mov    0x10(%rbp),%eax
+   100003f27:	45 31 d2             	xor    %r10d,%r10d
+   100003f2a:	89 7d fc             	mov    %edi,-0x4(%rbp)
+   100003f2d:	89 75 f8             	mov    %esi,-0x8(%rbp)
+   100003f30:	89 55 f4             	mov    %edx,-0xc(%rbp)
+   100003f33:	89 4d f0             	mov    %ecx,-0x10(%rbp)
+   100003f36:	44 89 45 ec          	mov    %r8d,-0x14(%rbp)
+   100003f3a:	44 89 4d e8          	mov    %r9d,-0x18(%rbp)
+   100003f3e:	8b 4d fc             	mov    -0x4(%rbp),%ecx
+   100003f41:	89 4d e4             	mov    %ecx,-0x1c(%rbp)
+   100003f44:	8b 4d 10             	mov    0x10(%rbp),%ecx
+   100003f47:	89 4d e0             	mov    %ecx,-0x20(%rbp)
+   100003f4a:	6b 4d e4 07          	imul   $0x7,-0x1c(%rbp),%ecx
+   100003f4e:	83 c1 20             	add    $0x20,%ecx
+   100003f51:	89 4d e0             	mov    %ecx,-0x20(%rbp)
+   100003f54:	8b 4d e0             	mov    -0x20(%rbp),%ecx
+   100003f57:	c1 e1 03             	shl    $0x3,%ecx
+   100003f5a:	83 c1 02             	add    $0x2,%ecx
+   100003f5d:	89 4d dc             	mov    %ecx,-0x24(%rbp)
+   100003f60:	89 45 d8             	mov    %eax,-0x28(%rbp)
+   100003f63:	44 89 d0             	mov    %r10d,%eax
+   100003f66:	5d                   	pop    %rbp
+   100003f67:	c3                   	retq   
